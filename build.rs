@@ -1,5 +1,4 @@
-#![feature(fs_try_exists)]
-
+use std::path::Path;
 use std::{ffi::OsString, io::Write};
 
 fn get_install_path() -> impl Iterator<Item = (&'static str, OsString)> {
@@ -27,18 +26,21 @@ fn get_download_name() -> &'static [&'static str] {
 
 fn main() {
     for (download_name, install_path) in get_install_path() {
-        if !std::fs::try_exists(&install_path).expect("Unable to check library file location") {
+        let path = Path::new(&install_path);
+
+        if !path.exists() {
             let data = sysreq::get(format!(
                 "https://github.com/dust-engine/nrd-sys/releases/download/v0.2/{}",
                 download_name
             ))
             .expect("Download file error");
+
             let mut file =
-                std::fs::File::create(install_path).expect("Unable to create library file");
+                std::fs::File::create(&install_path).expect("Unable to create library file");
+
             file.write_all(&data).expect("Unable to write library file");
         }
     }
-
     println!("cargo:rustc-link-lib=NRD");
     println!(
         "cargo:rustc-link-search={}",
