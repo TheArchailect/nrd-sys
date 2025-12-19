@@ -775,14 +775,24 @@ pub struct DispatchDesc {
 impl DispatchDesc {
     pub fn constant_buffer(&self) -> &[u8] {
         unsafe {
-            std::slice::from_raw_parts(
-                self.constant_buffer_data,
-                self.constant_buffer_data_size as usize,
-            )
+            if self.constant_buffer_data.is_null() || self.constant_buffer_data_size == 0 {
+                &[]
+            } else {
+                std::slice::from_raw_parts(
+                    self.constant_buffer_data,
+                    self.constant_buffer_data_size as usize,
+                )
+            }
         }
     }
     pub fn resources(&self) -> &[ResourceDesc] {
-        unsafe { std::slice::from_raw_parts(self.resources, self.resources_num as usize) }
+        unsafe {
+            if self.resources.is_null() || self.resources_num == 0 {
+                &[]
+            } else {
+                std::slice::from_raw_parts(self.resources, self.resources_num as usize)
+            }
+        }
     }
     pub fn name(&self) -> &CStr {
         unsafe { CStr::from_ptr(self.name) }
@@ -1326,10 +1336,7 @@ impl Default for ReferenceSettings {
 
 #[cfg(any(
     target_env = "msvc",
-    all(
-        not(target_arch = "aarch64"),
-        not(target_arch = "x86_64"),
-    )
+    all(not(target_arch = "aarch64"), not(target_arch = "x86_64"),)
 ))]
 macro_rules! nrd_abi {
     ($($toks: tt)+) => {
@@ -1339,17 +1346,13 @@ macro_rules! nrd_abi {
 
 #[cfg(not(any(
     target_env = "msvc",
-    all(
-        not(target_arch = "aarch64"),
-        not(target_arch = "x86_64"),
-    )
+    all(not(target_arch = "aarch64"), not(target_arch = "x86_64"),)
 )))]
 macro_rules! nrd_abi {
     ($($toks: tt)+) => {
         extern "C" {$($toks)+}
     };
 }
-
 
 nrd_abi! {
     pub(crate) fn GetLibraryDesc() -> &'static LibraryDesc;
